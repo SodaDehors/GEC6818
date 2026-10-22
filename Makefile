@@ -22,6 +22,8 @@ test:
 	./build/tests/test_player
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/test_event.c $(LDLIBS) -o build/tests/test_event
 	./build/tests/test_event
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/test_font.c $(LDLIBS) -o build/tests/test_font
+	./build/tests/test_font
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/test_extras.c src/extras.c src/backlight.c src/bmp.c $(LDLIBS) -o build/tests/test_extras
 	./build/tests/test_extras
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/test_lcd.c src/bmp.c $(LDLIBS) -o build/tests/test_lcd

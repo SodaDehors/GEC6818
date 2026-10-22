@@ -10,10 +10,13 @@ static int style_for(int scale)
 }
 static int char_index(uint32_t codepoint)
 {
-    int i;
+    int i,fallback=0;
     if(codepoint<128)codepoint=(unsigned char)toupper((unsigned char)codepoint);
-    for(i=0;i<FONT_GLYPH_COUNT;i++)if(font_codepoints[i]==codepoint)return i;
-    return FONT_GLYPH_COUNT-1;
+    for(i=0;i<FONT_GLYPH_COUNT;i++) {
+        if(font_codepoints[i]==codepoint)return i;
+        if(font_codepoints[i]=='?')fallback=i;
+    }
+    return fallback;
 }
 static const uint8_t *font_pixels(int style)
 {
@@ -21,12 +24,13 @@ static const uint8_t *font_pixels(int style)
     if(style==1)return font_pixels_1;
     return font_pixels_2;
 }
-/*
- * The font tables are rasterized from a desktop TTF/TTC. Alpha blending
- * looks nice on a PC, but on the board framebuffer it makes thin Chinese
- * strokes unstable. Treat the rasterized glyph as a crisp bitmap instead.
- */
-#define FONT_BITMAP_THRESHOLD 96U
+static uint32_t blend(uint32_t bg,uint32_t fg,unsigned a)
+{
+    unsigned r=(((fg>>16)&255)*a+((bg>>16)&255)*(255-a)+127)/255;
+    unsigned g=(((fg>>8)&255)*a+((bg>>8)&255)*(255-a)+127)/255;
+    unsigned b=((fg&255)*a+(bg&255)*(255-a)+127)/255;
+    return (r<<16)|(g<<8)|b;
+}
 static uint32_t next_codepoint(const char **text)
 {
     const unsigned char *p=(const unsigned char *)*text;
@@ -75,8 +79,8 @@ void lcd_text(int x,int y,const char *text,int scale,uint32_t color)
         for(row=0;row<g->height;row++)for(col=0;col<g->width;col++) {
             unsigned alpha=glyph[row*g->width+col];
             int xx=x+col,yy=y+row;
-            if(alpha>=FONT_BITMAP_THRESHOLD && xx>=0 && xx<800 && yy>=0 && yy<480)
-                lcd_pixel_direct(xx,yy,color);
+            if(alpha && xx>=0 && xx<800 && yy>=0 && yy<480)
+                lcd_pixel(xx,yy,alpha==255 ? color : blend(lcd_read_pixel(xx,yy),color,alpha));
         }
         x+=g->advance;
         if(x>=800)break;

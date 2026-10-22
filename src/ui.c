@@ -102,7 +102,7 @@ void ui_button_dual(int x,int y,int w,int h,const char *primary,const char *seco
     int scale=fit_scale(primary,w-16,2),left=centered_x(x,w,primary,scale);
     int sub=fit_scale(secondary,w-16,1),sub_left=centered_x(x,w,secondary,sub);
     int gap=1,total;
-    if(lcd_text_height(scale)+gap+lcd_text_height(sub)>h) {
+    if(lcd_text_height(scale)+gap+lcd_text_height(sub)>h-8) {
         scale=fit_scale(primary,w-16,1);
         left=centered_x(x,w,primary,scale);
     }

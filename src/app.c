@@ -71,14 +71,14 @@ static void controls(Player *p,const char *status,ControlView *v)
     }
     if(full || percent!=v->percent)ui_bar(24,370,752,percent);
     if(full || strcmp(line,v->line)) {
-        lcd_rect(24,394,752,22,UI_BG); lcd_text(24,398,line,2,UI_FG);
+        lcd_rect(24,394,752,34,UI_BG); lcd_text(24,396,line,2,UI_FG);
         strcpy(v->line,line);
     }
     if(full || playing!=v->playing)ui_button(132,430,110,40,playing ? "暂停" : "播放",playing);
     if(full || p->volume!=v->volume) {
         char volume[30]; ui_bar(646,446,138,p->volume);
-        lcd_rect(646,422,138,18,UI_BG);
-        snprintf(volume,sizeof(volume),"音量 %d",p->volume); lcd_text(646,428,volume,1,UI_FG);
+        lcd_rect(646,422,138,22,UI_BG);
+        snprintf(volume,sizeof(volume),"音量 %d",p->volume); lcd_text(646,422,volume,1,UI_FG);
     }
     v->percent=percent; v->playing=playing; v->volume=p->volume; v->full=1;
 }
@@ -231,7 +231,7 @@ static void draw_clock(void)
     if(localtime_r(&now,&tm))strftime(text,sizeof(text),"%Y-%m-%d %H:%M:%S",&tm);
     else strcpy(text,"--:--:--");
     lcd_rect(40,80,340,42,UI_PANEL); lcd_rect(40,80,6,42,UI_ACCENT);
-    lcd_text(62,93,text,2,UI_ACCENT);
+    lcd_text(54,80+(42-lcd_text_height(2))/2,text,2,UI_ACCENT);
 }
 static int draw_menu_asset(void)
 {
