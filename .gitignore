@@ -1,0 +1,6 @@
+build/
+bin/
+*.o
+*.log
+*.swp
+test-output/
