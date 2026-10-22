@@ -24,7 +24,7 @@ static int scaled(int value,const struct input_absinfo *axis,int size)
 int init_event(void)
 {
     const char *path=getenv("TOUCH_DEVICE");
-    event_fd=open(path ? path : "/dev/input/event0",O_RDONLY|O_NONBLOCK);
+    event_fd=open(path ? path : "/dev/input/event0",O_RDONLY|O_NONBLOCK|O_CLOEXEC);
     if(event_fd<0) { perror("open touch"); return -1; }
     x_code=ABS_X; y_code=ABS_Y;
     if(ioctl(event_fd,EVIOCGABS(x_code),&ax)<0 || ioctl(event_fd,EVIOCGABS(y_code),&ay)<0) {

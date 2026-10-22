@@ -22,8 +22,14 @@ test:
 	./build/tests/test_player
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/test_event.c $(LDLIBS) -o build/tests/test_event
 	./build/tests/test_event
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/test_extras.c src/extras.c src/backlight.c src/bmp.c $(LDLIBS) -o build/tests/test_extras
+	./build/tests/test_extras
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/test_lcd.c src/bmp.c $(LDLIBS) -o build/tests/test_lcd
+	./build/tests/test_lcd
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/test_media_flow.c $(filter-out src/lcd.c src/event.c,$(wildcard src/*.c)) $(LDLIBS) -o build/tests/test_media_flow
+	./build/tests/test_media_flow
 
 preview:
 	mkdir -p build/preview
-	$(CC) $(CPPFLAGS) $(CFLAGS) tests/ui_preview.c src/app.c src/bmp.c src/font.c src/media.c src/music.c src/photo.c src/player.c src/ui.c src/video.c $(LDLIBS) -o build/preview/ui_preview
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/ui_preview.c $(filter-out src/lcd.c src/event.c,$(wildcard src/*.c)) $(LDLIBS) -o build/preview/ui_preview
 	./build/preview/ui_preview

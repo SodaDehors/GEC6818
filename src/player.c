@@ -32,6 +32,12 @@ static int command(Player *p,const char *cmd)
     do { n=write(p->input,cmd,strlen(cmd)); } while(n<0 && errno==EINTR);
     return n==(ssize_t)strlen(cmd) ? 0 : -1;
 }
+static pid_t reap_child(pid_t pid,int *status,int options)
+{
+    pid_t result;
+    do { result=waitpid(pid,status,options); } while(result<0 && errno==EINTR);
+    return result;
+}
 void player_stop(Player *p)
 {
     if(p->pid>0) {
@@ -39,42 +45,45 @@ void player_stop(Player *p)
         int status; pid_t ret;
         command(p,"quit\n");
         do {
-            ret=waitpid(p->pid,&status,WNOHANG);
+            ret=reap_child(p->pid,&status,WNOHANG);
             if(ret==p->pid || (ret<0 && errno==ECHILD))break;
             usleep(10000);
         } while(monotonic_ms()<until);
         if(ret==0) {
             kill(p->pid,SIGTERM);
             until=monotonic_ms()+200;
-            do { ret=waitpid(p->pid,&status,WNOHANG); if(ret!=0)break; usleep(10000); }
+            do { ret=reap_child(p->pid,&status,WNOHANG); if(ret!=0)break; usleep(10000); }
             while(monotonic_ms()<until);
-            if(ret==0) { kill(p->pid,SIGKILL); while(waitpid(p->pid,&status,0)<0 && errno==EINTR){} }
+            if(ret==0) { kill(p->pid,SIGKILL); reap_child(p->pid,&status,0); }
         }
     }
     close_pipes(p); p->pid=0; p->paused=0; p->position=0; p->used=0; p->ended=0;
 }
 int player_start(Player *p,const char *path,int video)
 {
-    int to[2],from[2]; char volume[16]; pid_t pid;
+    int to[2],from[2]; pid_t pid;
     const char *binary=getenv("MPLAYER_BIN");
     player_stop(p); p->failed=0; p->duration=0; p->queried=0;
     if(pipe(to)<0)return -1;
     if(pipe(from)<0) { close(to[0]); close(to[1]); return -1; }
-    snprintf(volume,sizeof(volume),"%d",p->volume);
     pid=fork();
     if(pid==0) {
         const char *vo=getenv("MPLAYER_VO");
+        const char *ao=getenv("MPLAYER_AO");
         close(to[1]); close(from[0]);
         if(dup2(to[0],STDIN_FILENO)<0 || dup2(from[1],STDOUT_FILENO)<0)_exit(126);
         close(to[0]); close(from[1]);
         /* argv prevents shell expansion, including quotes/spaces in filenames. */
+        /* The course image's MPlayer is an older build.  Its proven outputs
+           are fbdev and OSS; keep ALSA/fbdev2 available through env overrides. */
         if(video)execlp(binary ? binary : "mplayer","mplayer","-slave","-quiet",
-            "-nolirc","-nomouseinput","-osdlevel","0",
-            "-softvol","-volume",volume,"-vo",vo ? vo : "fbdev2","-geometry","0:64",
-            "-zoom","-x","800","-y","288","-vf","scale=800:288","--",path,(char *)NULL);
+            "-framedrop","-nolirc","-nomouseinput","-osdlevel","0",
+            "-ao",ao ? ao : "oss",
+            "-vo",vo ? vo : "fbdev","-geometry","+0+64",
+            "-vf","scale=800:224","--",path,(char *)NULL);
         else execlp(binary ? binary : "mplayer","mplayer","-slave","-quiet",
-            "-nolirc","-nomouseinput","-softvol",
-            "-volume",volume,"-novideo","--",path,(char *)NULL);
+            "-nolirc","-nomouseinput","-ao",ao ? ao : "oss",
+            "-vo","null","-novideo","--",path,(char *)NULL);
         perror("exec mplayer"); _exit(127);
     }
     close(to[0]); close(from[1]);
@@ -124,7 +133,7 @@ void player_update(Player *p)
             else p->used=0;
         }
     }
-    ret=waitpid(p->pid,&status,WNOHANG);
+    ret=reap_child(p->pid,&status,WNOHANG);
     if(ret==p->pid) {
         p->failed=!WIFEXITED(status) || WEXITSTATUS(status)!=0;
         p->ended=1; p->pid=0; p->paused=0; close_pipes(p); return;

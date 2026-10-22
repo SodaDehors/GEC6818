@@ -2,6 +2,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <string.h>
+
+static void put32(unsigned char *p,uint32_t n)
+{ int i; for(i=0;i<4;i++)p[i]=(unsigned char)(n>>(8*i)); }
+int bmp_write(FILE *fp,const Bmp *image)
+{
+    unsigned char h[54]={0},*row; size_t stride; int x,y;
+    if(!fp || !image || !image->pixels || image->width<=0 || image->height<=0 ||
+       image->width>8192 || image->height>8192)return -1;
+    stride=((size_t)image->width*3+3)&~(size_t)3;
+    h[0]='B'; h[1]='M'; put32(h+2,(uint32_t)(54+stride*image->height));
+    put32(h+10,54); put32(h+14,40); put32(h+18,(uint32_t)image->width);
+    put32(h+22,(uint32_t)image->height); h[26]=1; h[28]=24;
+    put32(h+34,(uint32_t)(stride*image->height));
+    row=calloc(1,stride); if(!row)return -1;
+    if(fwrite(h,1,54,fp)!=54) { free(row); return -1; }
+    for(y=image->height-1;y>=0;y--) {
+        for(x=0;x<image->width;x++) {
+            uint32_t rgb=image->pixels[(size_t)y*image->width+x];
+            row[x*3]=(unsigned char)rgb; row[x*3+1]=(unsigned char)(rgb>>8); row[x*3+2]=(unsigned char)(rgb>>16);
+        }
+        if(fwrite(row,1,stride,fp)!=stride) { free(row); return -1; }
+    }
+    free(row); return 0;
+}
 static uint32_t le32(const unsigned char *p)
 {
     return (uint32_t)p[0] | (uint32_t)p[1]<<8 |

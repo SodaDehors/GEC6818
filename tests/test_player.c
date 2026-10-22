@@ -26,6 +26,9 @@ int main(void)
     for(i=0;i<100 && !p.ended;i++) { player_update(&p); usleep(10000); }
     assert(p.ended && p.failed && p.pid==0); player_stop(&p);
     unsetenv("TEST_PLAYER_FAIL");
+    setenv("TEST_STUBBORN","1",1); assert(player_start(&p,path,0)==0);
+    usleep(100000); owned=p.pid; player_stop(&p); unsetenv("TEST_STUBBORN");
+    errno=0; assert(waitpid(owned,&status,WNOHANG)==-1 && errno==ECHILD);
     setenv("MPLAYER_BIN","/not/a/player",1); assert(player_start(&p,path,0)==0);
     for(i=0;i<100 && !p.ended;i++) { player_update(&p); usleep(10000); }
     assert(p.ended && p.failed); player_stop(&p);
